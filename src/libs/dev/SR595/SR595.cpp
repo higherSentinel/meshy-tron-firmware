@@ -73,7 +73,7 @@
  */
  void SR595::setAll()
  {
-    _reg_data = 0xFF;
+    _reg_data = 0xFFFF;
  }
 
  /**
@@ -81,7 +81,7 @@
  */
  void SR595::clearAll()
  {
-    _reg_data = 0x00;
+    _reg_data = 0x0000;
  }
 
  /**
@@ -92,7 +92,7 @@
  {
    for(uint8_t i = 0; i < _max_pos; i++)
    {
-      digitalWrite(_data_pin, _reg_data & (0x01 << (_max_pos-i-1)));
+      digitalWrite(_data_pin, (_reg_data & (0x01 << (_max_pos-i-1))) > 0? HIGH : LOW);
       digitalWrite(_clk_pin, !0);
       delayMicroseconds(1);
       digitalWrite(_clk_pin, 0);

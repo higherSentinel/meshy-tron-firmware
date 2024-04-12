@@ -157,7 +157,7 @@ upload-all:
 upload: upload-app
 
 # target for all
-all: compile upload
+all: compile upload-all
 
 # define the phony targets
 .PHONY: all compile clean dev dev-remove lib-install lib-remove list-boards upload upload-app upload-all esputil-install
