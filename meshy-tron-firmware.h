@@ -3,6 +3,7 @@
 #include <Logger.h>
 #include <Adafruit_NeoPixel.h>
 #include "src/libs/dev/SR595/SR595.h"
+#include "src/libs/dev/HPDL1414/HPDL1414.h"
 
 // global defines
 #define LEDPIN              48
@@ -31,6 +32,7 @@ Adafruit_NeoPixel             obled(1, LEDPIN, NEO_GRB + NEO_KHZ800);
 #define HPDL1414_D4             18      // shared with main nixie sr data pin
 #define HPDL1414_D5             14
 #define HPDL1414_D6             48
+#define HPDL1414_WR             2
 
 
 // nixie related
