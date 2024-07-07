@@ -31,6 +31,8 @@
    digitalWrite(_clk_pin, 0);
    digitalWrite(_reg_out_pin, 0);
    digitalWrite(_data_pin, 0);
+
+   _initialized = true;
  }
 
  /**
@@ -90,6 +92,9 @@
   */
  void SR595::clockOut()
  {
+   if(!_initialized)
+      return;
+
    for(uint8_t i = 0; i < _max_pos; i++)
    {
       digitalWrite(_data_pin, (_reg_data & (0x01 << (_max_pos-i-1))) > 0? HIGH : LOW);

@@ -36,7 +36,7 @@ class SR595
         uint32_t _data_pin;
         sr595_type_t _sr_type;
         uint8_t _max_pos;
-
+        bool _initialized = false;
         uint16_t _reg_data = 0;
 
 

@@ -1,10 +1,11 @@
 #include "meshy-tron-firmware.h"
 
-// nixie digit shift registers
+// nixie digit shift registers & wrapper class
 SR595 sr1(NIXIE_SR_CLK_1, NIXIE_SR_COM_LAT, NIXIE_SR_COM_DAT, sr595_type_2x);
 SR595 sr2(NIXIE_SR_CLK_2, NIXIE_SR_COM_LAT, NIXIE_SR_COM_DAT, sr595_type_2x);
 SR595 sr3(NIXIE_SR_CLK_3, NIXIE_SR_COM_LAT, NIXIE_SR_COM_DAT, sr595_type_2x);
 SR595 sr4(NIXIE_SR_CLK_4, NIXIE_SR_COM_LAT, NIXIE_SR_COM_DAT, sr595_type_2x);
+SRnixie nixie[4];
 
 // hpdl1414 & pdef stuct
 HPDL1414 md;
@@ -23,7 +24,32 @@ void setup()
   LED_INIT;
   LED_OFF;
 
-  // Setup hpdl struct
+  // cycle MR
+  // MR
+  pinMode(NIXIE_SR_COM_MR, OUTPUT);
+  digitalWrite(NIXIE_SR_COM_MR, LOW);
+  pinMode(NIXIE_SR_COM_MR, INPUT); // external pu on pin
+
+  // init nixies
+  #ifdef ENABLE_NIXIE
+  pinMode(NIXIE_SR_COM_LAT, OUTPUT);
+  #ifdef ENABLE_NIXIE_1
+  nixie[0].init(&sr1, NIXIE_PWM_1);
+  #endif
+  #ifdef ENABLE_NIXIE_2
+  nixie[1].init(&sr2, NIXIE_PWM_2);
+  #endif
+  #ifdef ENABLE_NIXIE_3
+  nixie[2].init(&sr3, NIXIE_PWM_3);
+  #endif
+  #ifdef ENABLE_NIXIE_4
+  nixie[3].init(&sr4, NIXIE_PWM_4);
+  #endif
+  #endif
+
+  // init mini-display
+  #ifdef ENABLE_MINI_DISPLAY
+  //setup hpdl struct
   segdisppdef.wr = HPDL1414_WR;
   segdisppdef.a[0] = HPDL1414_A0;
   segdisppdef.a[1] = HPDL1414_A1;
@@ -34,17 +60,14 @@ void setup()
   segdisppdef.d[4] = HPDL1414_D4;
   segdisppdef.d[5] = HPDL1414_D5;
   segdisppdef.d[6] = HPDL1414_D6; 
-
-  sr1.init();
-  sr2.init();
-  sr3.init();
-  sr4.init();
   md.init(&segdisppdef);
-
   md.blank();
+  #endif
 
-  // MR
-  pinMode(NIXIE_SR_COM_MR, INPUT);
+  // init separator LED
+  #ifdef ENABLE_SEPARATOR_LED
+  SeparatorLED::getInstance().init(SEPARATION_LED);
+  #endif
 
   Logger::verbose("SETUP COMPLETE");
 }
@@ -52,41 +75,38 @@ void setup()
 uint8_t tog = 0x00;
 uint8_t tog2 = 0x00;
 uint8_t asci = 32;
-uint8_t digib = 1;
+uint8_t digib = 0;
 uint16_t h = 0;
-uint64_t uptime = 0;
+uint64_t loop_et = 0;
 
 void loop()
 {
+  // frame time, if not elapsed return
+  if((loop_et + FRAME_TIME) > millis())
+    return;
+
   if(tog == 0)
   {
-    sr1.clearAll();
-    sr1.setBit(digib);
-    sr1.clockOut();
+    sprintf(strbuf, "digit = %d", digib);
+    Logger::verbose("LOOP", strbuf);
 
-    sr2.clearAll();
-    sr2.setBit(digib);
-    sr2.clockOut();
-    
-    sr3.clearAll();
-    sr3.setBit(digib);
-    sr3.clockOut();
-    
-    sr4.clearAll();
-    sr4.setBit(digib++);
-    sr4.clockOut();
-    sr4.latchOut();
+    nixie[0].setDigit(digib);
+    nixie[1].setDigit(digib);
+    nixie[2].setDigit(digib);
+    nixie[3].setDigit(digib++);
 
-    digib = digib == 8? 12 : digib;
-    digib = digib >= 16? 1 : digib;
+    // manual latch use nixie 3 latch
+    latchAllNixies();
+
+    digib = digib > 10? 0 : digib;
   }
 
-  delay(5);
-  analogWrite(NIXIE_PWM_1, 0xff-tog);
-  analogWrite(NIXIE_PWM_2, 0xff-tog);
-  analogWrite(NIXIE_PWM_3, 0xff-tog);
-  analogWrite(NIXIE_PWM_4, 0xff-tog);
-  analogWrite(SEPERATION_LED, tog);
+  for(uint8_t i = 0; i < 4; i++)
+  {
+    nixie[i].setBrightness(0xff-tog);
+  }
+  
+  SeparatorLED::getInstance().setBrightness(tog);
 
   tog2 = tog == 0xFF? 1 : tog2;
   tog2 = tog == 0x00? 0: tog2;
@@ -102,8 +122,18 @@ void loop()
 
   tog = tog2? tog - 1: tog + 1;
 
-
-
   sprintf(strbuf, "UPTIME (ms, u32)%d", millis());
   Logger::verbose("LOOP: ", strbuf);
+
+  // update loop et for next frame
+  loop_et = millis();
+}
+
+// external latch
+void latchAllNixies()
+{
+    digitalWrite(NIXIE_SR_COM_LAT, !0);
+    // delay not necessary but jic
+    delayMicroseconds(1);
+    digitalWrite(NIXIE_SR_COM_LAT, 0);
 }
