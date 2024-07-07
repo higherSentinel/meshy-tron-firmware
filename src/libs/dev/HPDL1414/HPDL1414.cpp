@@ -3,7 +3,7 @@
 /**
  * @brief constructor
  */
- HPDL1414::HPDL1414(uint32_t wr, uint32_t a0, uint32_t a1, uint32_t d0, uint32_t d1, uint32_t d2, uint32_t d3, uint32_t d4, uint32_t d5, uint32_t d6): _wr(wr) ,_a{a0, a1}, _d{d0, d1, d2, d3, d4, d5, d6} 
+ HPDL1414::HPDL1414() 
 {
 
 }
@@ -19,25 +19,27 @@ HPDL1414::~HPDL1414()
 /**
  * @brief function to be called first from app
  */
-void HPDL1414::init()
+void HPDL1414::init(hpdl1414_pins_t * pdef)
 {
+    memcpy(&_pdef, pdef, sizeof(hpdl1414_pins_t));
+
     // disable write first
-    pinMode(_wr, OUTPUT);
-    digitalWrite(_wr, HIGH);
+    pinMode(_pdef.wr, OUTPUT);
+    digitalWrite(_pdef.wr, HIGH);
 
     // setup address and then data pins
 
     for(uint8_t i = 0; i < 2; i++)
     {
-        pinMode(_a[i], OUTPUT);
-        digitalWrite(_a[i], LOW);
+        pinMode(_pdef.a[i], OUTPUT);
+        digitalWrite(_pdef.a[i], LOW);
     }
 
 
     for(uint8_t i = 0; i < 7; i++)
     {
-        pinMode(_d[i], OUTPUT);
-        digitalWrite(_d[i], LOW);
+        pinMode(_pdef.d[i], OUTPUT);
+        digitalWrite(_pdef.d[i], LOW);
     }
 
     _initialized = true;
@@ -51,7 +53,7 @@ void HPDL1414::setData(uint8_t data)
 {
     for(uint8_t i = 0; i < 7; i++)
     {
-        digitalWrite(_d[i], (data & (0x01 << i)) != 0? HIGH : LOW);
+        digitalWrite(_pdef.d[i], (data & (0x01 << i)) != 0? HIGH : LOW);
     }
 }
 
@@ -63,7 +65,7 @@ void HPDL1414::setAddress(uint8_t address)
 {
     for(uint8_t i = 0; i < 2; i++)
     {
-        digitalWrite(_a[i], (address & (0x01 << i)) != 0? HIGH : LOW);
+        digitalWrite(_pdef.a[i], (address & (0x01 << i)) != 0? HIGH : LOW);
     }
 }
 
@@ -72,15 +74,15 @@ void HPDL1414::setAddress(uint8_t address)
  */
 void HPDL1414::resetPins()
 {
-    digitalWrite(_wr, HIGH);
+    digitalWrite(_pdef.wr, HIGH);
     for(uint8_t i = 0; i < 2; i++)
     {
-        digitalWrite(_a[i], LOW);
+        digitalWrite(_pdef.a[i], LOW);
     }
     
     for(uint8_t i = 0; i < 7; i++)
     {
-        digitalWrite(_d[i], LOW);
+        digitalWrite(_pdef.d[i], LOW);
     }
 }
 
@@ -101,9 +103,9 @@ void HPDL1414::setDigit(uint8_t pos, char c)
     resetPins();
     setAddress(pos);
     setData(c);
-    digitalWrite(_wr, LOW);
+    digitalWrite(_pdef.wr, LOW);
     delayMicroseconds(1);
-    digitalWrite(_wr, HIGH);
+    digitalWrite(_pdef.wr, HIGH);
     resetPins();
 }
 
@@ -120,9 +122,9 @@ void HPDL1414::blank()
     for(uint8_t i = 0; i < 4; i++)
     {
         setAddress(i);
-        digitalWrite(_wr, LOW);
+        digitalWrite(_pdef.wr, LOW);
         delayMicroseconds(1);
-        digitalWrite(_wr, HIGH);  
+        digitalWrite(_pdef.wr, HIGH);  
     }
     resetPins();
 }

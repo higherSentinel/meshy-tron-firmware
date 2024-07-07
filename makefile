@@ -12,9 +12,6 @@ hardware_fqbn 		= esp32:esp32:esp32s3
 # set "true" to enable verbose 
 enable_verbose 		= false
 
-# default binary upload method = stlink swd, for USB or UART the stm32 will need to reboot onto the bootloader before running make
-default_bin-upload	= open-ocd-st-link-v2
-
 # build dir full path, default is at current work directory / build
 # build_dir			= full-path-to-build-directory
 

@@ -6,8 +6,12 @@ SR595 sr2(NIXIE_SR_CLK_2, NIXIE_SR_COM_LAT, NIXIE_SR_COM_DAT, sr595_type_2x);
 SR595 sr3(NIXIE_SR_CLK_3, NIXIE_SR_COM_LAT, NIXIE_SR_COM_DAT, sr595_type_2x);
 SR595 sr4(NIXIE_SR_CLK_4, NIXIE_SR_COM_LAT, NIXIE_SR_COM_DAT, sr595_type_2x);
 
-// hpdl1414
-HPDL1414 md(HPDL1414_WR, HPDL1414_A0, HPDL1414_A1, HPDL1414_D0, HPDL1414_D1, HPDL1414_D2, HPDL1414_D3, HPDL1414_D4, HPDL1414_D5, HPDL1414_D6);
+// hpdl1414 & pdef stuct
+HPDL1414 md;
+hpdl1414_pins_t segdisppdef;
+
+// buff for str ops
+static char strbuf[0xFF];
 
 void setup()
 {
@@ -19,11 +23,23 @@ void setup()
   LED_INIT;
   LED_OFF;
 
+  // Setup hpdl struct
+  segdisppdef.wr = HPDL1414_WR;
+  segdisppdef.a[0] = HPDL1414_A0;
+  segdisppdef.a[1] = HPDL1414_A1;
+  segdisppdef.d[0] = HPDL1414_D0;
+  segdisppdef.d[1] = HPDL1414_D1;
+  segdisppdef.d[2] = HPDL1414_D2;
+  segdisppdef.d[3] = HPDL1414_D3;
+  segdisppdef.d[4] = HPDL1414_D4;
+  segdisppdef.d[5] = HPDL1414_D5;
+  segdisppdef.d[6] = HPDL1414_D6; 
+
   sr1.init();
   sr2.init();
   sr3.init();
   sr4.init();
-  md.init();
+  md.init(&segdisppdef);
 
   md.blank();
 
@@ -38,6 +54,7 @@ uint8_t tog2 = 0x00;
 uint8_t asci = 32;
 uint8_t digib = 1;
 uint16_t h = 0;
+uint64_t uptime = 0;
 
 void loop()
 {
@@ -84,4 +101,9 @@ void loop()
   }
 
   tog = tog2? tog - 1: tog + 1;
+
+
+
+  sprintf(strbuf, "UPTIME (ms, u32)%d", millis());
+  Logger::verbose("LOOP: ", strbuf);
 }

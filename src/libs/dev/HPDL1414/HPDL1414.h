@@ -4,12 +4,19 @@
 // local includes
 #include "Arduino.h"
 
+typedef struct
+{
+    uint32_t wr; // write (active low)
+    uint32_t a[2]; // address pins (digit select)
+    uint32_t d[7]; // ascii i.e. data pins 
+}hpdl1414_pins_t;
+
 class HPDL1414
 {
     public:
-        HPDL1414(uint32_t wr, uint32_t a0, uint32_t a1, uint32_t d0, uint32_t d1, uint32_t d2, uint32_t d3, uint32_t d4, uint32_t d5, uint32_t d6);
+        HPDL1414();
         ~HPDL1414();
-        void init();
+        void init(hpdl1414_pins_t * pdef);
         void blank();
         void setDigit(uint8_t pos, char c);
         
@@ -18,9 +25,7 @@ class HPDL1414
         void setData(uint8_t data);
         void setAddress(uint8_t address);
 
-        uint32_t _wr;
-        uint32_t _a[2];
-        uint32_t _d[7];
+        hpdl1414_pins_t _pdef;
 
         bool _initialized;
 
