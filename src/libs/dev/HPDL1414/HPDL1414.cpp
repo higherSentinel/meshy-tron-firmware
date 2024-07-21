@@ -128,3 +128,24 @@ void HPDL1414::blank()
     }
     resetPins();
 }
+
+/**
+ * Call to set text on the display
+ */
+void HPDL1414::setText(char * str)
+{
+    // check for dumbfuckery
+    if(str == nullptr)
+        return;
+    
+    // make sure only 4 digits fill
+    uint8_t len = strlen(str) > 4? 4 : strlen(str);
+
+    blank();
+
+    // right aligned for now
+    for(uint8_t i = 0; i < len; i++)
+    {
+        setDigit(i, str[len-1-i]);
+    }
+}

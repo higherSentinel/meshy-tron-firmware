@@ -19,6 +19,7 @@ class HPDL1414
         void init(hpdl1414_pins_t * pdef);
         void blank();
         void setDigit(uint8_t pos, char c);
+        void setText(char * str);
         
     private:
         void resetPins();
