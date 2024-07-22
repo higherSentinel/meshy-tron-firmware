@@ -68,5 +68,49 @@ void SRnixie::setBrightness(uint8_t brightness)
     if(!_initialized)
         return;
 
-    analogWrite(_bpin, brightness);
+    _brightness = brightness;
+}
+
+/**
+ * @brief call to set the fade type
+ * @param fade_type refer to class header
+ */
+void SRnixie::setFade(sr_nixie_fade_t fade_type)
+{
+    _fade_type = fade_type;
+}
+
+/**
+ * @brief call to update the nixies current brightness as configured by the
+ * fade styles
+ * @warning fps is dependant on caller
+ */
+void SRnixie::updateNixie()
+{
+    if(!_initialized)
+        return;
+    
+    switch(_fade_type)
+    {
+        case sr_nixie_fade_linear:
+            _current_brightness = _current_brightness < _brightness? _current_brightness + 1 : _current_brightness;
+            _current_brightness = _current_brightness > _brightness? _current_brightness - 1 : _current_brightness;
+            break;
+        case sr_nixie_fade_instant:
+            _current_brightness = _brightness;
+            break;
+        default:
+            _current_brightness = _brightness;
+            break;
+    }
+    analogWrite(_bpin, _current_brightness);
+}
+
+/**
+ * @brief call to check if the set brightness was sent out
+ * @return bool, true if brightness is set on the nixie 
+ */
+bool SRnixie::isBrightnessSet()
+{
+    return _current_brightness == _brightness;
 }

@@ -14,15 +14,45 @@ hpdl1414_pins_t segdisppdef;
 // buff for str ops
 static char strbuf[0xFF];
 
+// clock sm stuff
+bool clock_not_synced = false;
+bool minute_int_flag = false;
+
+
+// isr for the minute-by-minute update
+void minuteISR()
+{
+  minute_int_flag = true;
+}
+
+
+bool startRTC()
+{
+    // set instance and verify that the RTC is on the bus
+    if(!DS3231::getInstance().init(&Wire))
+      return false;
+    
+    // start the clock if not started
+    clock_not_synced = DS3231::getInstance().isActive();
+    if(!clock_not_synced)
+    {
+      DS3231::getInstance().startClock();
+    }
+
+    // set alarm 2 to start on each minute
+    DS3231::getInstance().setAlarm2(Alarm2EveryMinute, 0, 0, 0);
+
+    // enable alarm 2 interrupt & pin
+    attachInterrupt(RTC_INT_PIN, minuteISR, FALLING);
+    DS3231::getInstance().alarmInterruptEnable(Alarm2, true);
+}
+
+
 void setup()
 {
   // setup comms port & logger
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUD);
   Logger::setLogLevel(LOGGER_LEVEL);
-
-  // init on-board led
-  LED_INIT;
-  LED_OFF;
 
   // cycle MR
   // MR
@@ -45,6 +75,17 @@ void setup()
   #ifdef ENABLE_NIXIE_4
   nixie[3].init(&sr4, NIXIE_PWM_4);
   #endif
+
+  // set all nixies to 0
+  for(uint8_t i = 0; i < 4; i++)
+  {
+    nixie[i].setDigit(0);
+    nixie[i].setBrightness(CONV_NIXIE_BRIGHTNES(NIXIE_MIN_BRIGHTNESS));
+    nixie[i].updateNixie();
+    nixie[i].setFade(sr_nixie_fade_linear);
+  }
+  // send out
+  latchAllNixies();
   #endif
 
   // init mini-display
@@ -66,10 +107,20 @@ void setup()
 
   // init separator LED
   #ifdef ENABLE_SEPARATOR_LED
-  SeparatorLED::getInstance().init(SEPARATION_LED);
+  SeparatorLED::getInstance().init(SEPARATION_LED_PIN);
   #endif
 
-  Logger::verbose("SETUP COMPLETE");
+  // start I2C bus
+  Wire.begin();
+
+  // start RTC
+  if(!startRTC())
+  {
+    Logger::verbose("SETUP: ", "RTC INIT FAIL");
+    HALT;
+  }
+
+  Logger::verbose("- SETUP COMPLETE -");
 }
 
 uint8_t tog = 0x00;
@@ -79,51 +130,71 @@ uint8_t digib = 0;
 uint16_t h = 0;
 uint64_t loop_et = 0;
 
+
+uint64_t ps_et = 0;
+uint16_t psc = 0;
+
+uint16_t mcount = 1;
+
+void pulseSeparator()
+{
+    SeparatorLED::getInstance().setBrightness(((psc & 0x100)? 0xFF & ~psc : 0xFF & psc) * SPERATOR_MAX_BRIGHTNESS);
+    psc++;
+    psc&=~0xFE00;
+    ps_et = millis();
+}
+
+uint8_t nixie_cur_digits[4];
+uint8_t nixie_digits[4];
+bool update_digits = false;
+
 void loop()
 {
   // frame time, if not elapsed return
   if((loop_et + FRAME_TIME) > millis())
     return;
-
-  if(tog == 0)
-  {
-    sprintf(strbuf, "digit = %d", digib);
-    Logger::verbose("LOOP", strbuf);
-
-    nixie[0].setDigit(digib);
-    nixie[1].setDigit(digib);
-    nixie[2].setDigit(digib);
-    nixie[3].setDigit(digib++);
-
-    // manual latch use nixie 3 latch
-    latchAllNixies();
-
-    digib = digib > 10? 0 : digib;
-  }
-
+  
+  // update displays
+  pulseSeparator();
+  
+  // update nixies
   for(uint8_t i = 0; i < 4; i++)
   {
-    nixie[i].setBrightness(0xff-tog);
+    nixie[i].updateNixie();
   }
-  
-  SeparatorLED::getInstance().setBrightness(tog);
 
-  tog2 = tog == 0xFF? 1 : tog2;
-  tog2 = tog == 0x00? 0: tog2;
+  updateNixieDigits();
 
-  if(tog % 40 == 0)
+  if(minute_int_flag)
   {
-      md.setDigit(0, asci);
-      md.setDigit(1, asci);
-      md.setDigit(2, asci);
-      md.setDigit(3, asci++);
-      asci = asci >= 95? 32 : asci;
+    mcount = mcount<<1;
+    sprintf(strbuf, "%4d", mcount);
+    md.setText(strbuf);
+    Logger::verbose("LOOP: ", strbuf);
+
+    // find out which nixies need to be updated
+    for(uint8_t i = 0; i < 4; i++)
+    {
+      nixie_digits[i] = strbuf[4-1-i];
+      Serial.print("digit ");
+      Serial.print(i);
+      Serial.print("=");
+      Serial.println((char)nixie_digits[i]);
+      if((nixie_digits[i] != nixie_cur_digits[i]) || nixie_digits[i] == ' ')
+      {
+        nixie[i].setBrightness(CONV_NIXIE_BRIGHTNES(NIXIE_MIN_BRIGHTNESS));
+      }
+    }
+
+    update_digits = true;
+    minute_int_flag = false;
+    DS3231::getInstance().clearAlarmFlag(Alarm2);
   }
 
-  tog = tog2? tog - 1: tog + 1;
+  
 
-  sprintf(strbuf, "UPTIME (ms, u32)%d", millis());
-  Logger::verbose("LOOP: ", strbuf);
+  // sprintf(strbuf, "UPTIME (ms, u32): %d", millis());
+  // Logger::verbose("LOOP: ", strbuf);
 
   // update loop et for next frame
   loop_et = millis();
@@ -136,4 +207,37 @@ void latchAllNixies()
     // delay not necessary but jic
     delayMicroseconds(1);
     digitalWrite(NIXIE_SR_COM_LAT, 0);
+}
+
+// external to update the nixie digits
+void updateNixieDigits()
+{
+  if(update_digits)
+  {
+    // check if all the nixies have reached zero and update the
+    for(uint8_t i = 0; i < 4; i++)
+    {
+      if(!nixie[i].isBrightnessSet())
+        return;
+    }
+
+    // set digits to all of em since common latch
+    for(uint8_t i = 0; i < 4; i++)
+    {
+      if((nixie_cur_digits[i]!=nixie_digits[i]) && nixie_digits[i] != ' ')
+      {
+          nixie[i].setBrightness(CONV_NIXIE_BRIGHTNES(NIXIE_MAX_BRIGHTNESS));
+      }
+      nixie_cur_digits[i] = nixie_digits[i];
+      if(nixie_cur_digits[i] > 47 && nixie_cur_digits[i] < 58)
+      {
+        nixie[i].setDigit(nixie_cur_digits[i]-48);
+      }
+    }
+  }
+
+  // allof the nixies have reached zero brightness
+  // send out updated digits & clear update flag
+  latchAllNixies();
+  update_digits = false;
 }
