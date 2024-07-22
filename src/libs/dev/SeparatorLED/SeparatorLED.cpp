@@ -75,7 +75,7 @@ SeparatorLED::~SeparatorLED()
     while(!0)
     {
         uint16_t psc = SeparatorLED::getInstance()._psc;
-        SeparatorLED::getInstance().setBrightness((psc & 0x100)? 0xFF & ~psc : 0xFF & psc);
+        SeparatorLED::getInstance().setBrightness((((psc & 0x100)>>8) * (0xFF & ~psc)) + ((((psc & 0x100)>>8)^0x01) * (0xFF & psc)));
         psc++;
         psc&=~0xFE00;
         SeparatorLED::getInstance()._psc = psc;
