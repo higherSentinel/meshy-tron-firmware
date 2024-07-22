@@ -33,7 +33,7 @@ class SRnixie
         bool _initialized = false;
         uint32_t _bpin;
         uint8_t _brightness = 0;
-        uint8_t _current_brightness = 0;
+        uint8_t _current_brightness = 255; // OE active low
         sr_nixie_fade_t _fade_type = sr_nixie_fade_instant;
 };
 

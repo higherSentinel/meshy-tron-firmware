@@ -27,6 +27,7 @@ void SRnixie::init(SR595 * sr_instance, uint32_t bpin)
     _sr_instance = sr_instance;
     _sr_instance->init();
     _bpin = bpin;
+    analogWrite(_bpin, _current_brightness);
     _initialized = true;
 }
 
