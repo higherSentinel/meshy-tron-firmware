@@ -9,6 +9,7 @@
 #include "src/libs/dev/DS3231/DS3231.h"
 #include <Wire.h>
 #include "board-def.h"
+#include "task-info.h"
 
 // global defines
 #define SERIAL_BAUD         115200
@@ -20,21 +21,19 @@
 #define ENABLE_NIXIE_2 // comment to disable nixie 2
 #define ENABLE_NIXIE_3 // comment to disable nixie 3
 #define ENABLE_NIXIE_4 // comment to disable nixie 4
-#define NIXIE_MAX_BRIGHTNESS        0.8 // 0-1
+#define NIXIE_MAX_BRIGHTNESS        0.5 // 0-1
 #define NIXIE_MIN_BRIGHTNESS        0.0 // 0-1
 
 #define ENABLE_MINI_DISPLAY // comment to disable the mini hpdl1414 display
 
 #define ENABLE_SEPARATOR_LED // comment to disable the seperator led
-#define SPERATOR_MAX_BRIGHTNESS     0.25 // 0-1
+#define SEPARATOR_INTERVAL_MS       4096
+#define SEPARATOR_MAX_BRIGHTNESS    0.25 // 0-1
 
 
 // animation timing
-#define FRAME_RATE          240.00 //fps
+#define FRAME_RATE          120.00 //fps
 #define FRAME_TIME          (1000.00/FRAME_RATE)
-
-// random
-#define HALT                while(1)
 
 // no touchy macro funcs
 #define CONV_NIXIE_BRIGHTNES(b) (0xFF-(0xFF*b))

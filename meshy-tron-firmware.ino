@@ -47,6 +47,7 @@ bool startRTC()
     DS3231::getInstance().alarmInterruptEnable(Alarm2, true);
 }
 
+ 
 
 void setup()
 {
@@ -84,6 +85,9 @@ void setup()
     nixie[i].updateNixie();
     nixie[i].setFade(sr_nixie_fade_linear);
   }
+
+  delay(10);
+
   // send out
   latchAllNixies();
   #endif
@@ -107,7 +111,7 @@ void setup()
 
   // init separator LED
   #ifdef ENABLE_SEPARATOR_LED
-  SeparatorLED::getInstance().init(SEPARATION_LED_PIN);
+  SeparatorLED::getInstance().init(SEPARATION_LED_PIN, SEPARATOR_INTERVAL_MS, SEPARATOR_MAX_BRIGHTNESS);
   #endif
 
   // start I2C bus
@@ -123,27 +127,9 @@ void setup()
   Logger::verbose("- SETUP COMPLETE -");
 }
 
-uint8_t tog = 0x00;
-uint8_t tog2 = 0x00;
-uint8_t asci = 32;
-uint8_t digib = 0;
-uint16_t h = 0;
+
 uint64_t loop_et = 0;
-
-
-uint64_t ps_et = 0;
-uint16_t psc = 0;
-
 uint16_t mcount = 1;
-
-void pulseSeparator()
-{
-    SeparatorLED::getInstance().setBrightness(((psc & 0x100)? 0xFF & ~psc : 0xFF & psc) * SPERATOR_MAX_BRIGHTNESS);
-    psc++;
-    psc&=~0xFE00;
-    ps_et = millis();
-}
-
 uint8_t nixie_cur_digits[4];
 uint8_t nixie_digits[4];
 bool update_digits = false;
@@ -155,7 +141,6 @@ void loop()
     return;
   
   // update displays
-  pulseSeparator();
   
   // update nixies
   for(uint8_t i = 0; i < 4; i++)
@@ -168,6 +153,7 @@ void loop()
   if(minute_int_flag)
   {
     mcount = mcount<<1;
+    mcount = mcount == 0? 1 : mcount;
     sprintf(strbuf, "%4d", mcount);
     md.setText(strbuf);
     Logger::verbose("LOOP: ", strbuf);
