@@ -7,6 +7,7 @@
 #include "src/libs/dev/SRnixie/SRnixie.h"
 #include "src/libs/dev/SeparatorLED/SeparatorLED.h"
 #include "src/libs/dev/DS3231/DS3231.h"
+#include "src/libs/hw-modules/NixieFrontend/NixieFrontend.h"
 #include <Wire.h>
 #include "board-def.h"
 #include "task-info.h"
@@ -16,7 +17,7 @@
 #define LOGGER_LEVEL        Logger::VERBOSE
 
 // modules
-#define ENABLE_NIXIE // comment to disable all nixies
+// #define ENABLE_NIXIE // comment to disable all nixies
 #define ENABLE_NIXIE_1 // comment to disable nixie 1
 #define ENABLE_NIXIE_2 // comment to disable nixie 2
 #define ENABLE_NIXIE_3 // comment to disable nixie 3
@@ -32,8 +33,5 @@
 
 
 // animation timing
-#define FRAME_RATE          120.00 //fps
+#define FRAME_RATE          256.00 //fps
 #define FRAME_TIME          (1000.00/FRAME_RATE)
-
-// no touchy macro funcs
-#define CONV_NIXIE_BRIGHTNES(b) (0xFF-(0xFF*b))

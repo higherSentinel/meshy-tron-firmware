@@ -27,26 +27,27 @@ void SRnixie::init(SR595 * sr_instance, uint32_t bpin)
     _sr_instance = sr_instance;
     _sr_instance->init();
     _bpin = bpin;
-    analogWrite(_bpin, _current_brightness);
+    setBrightness(0);
     _initialized = true;
 }
 
 /**
  * @brief function to set the requested digit on the nixie
- * @param digit 0-9 (u8)
+ * @param digit 0-10 (u8), 10 is the . on the nixie
  * @warning this fuunction will only clock data out to the SR.
  * the caller will need to use the latch call to latch out the
  * written data.
  */
 void SRnixie::setDigit(uint8_t digit)
 {
-    if(!_initialized || digit > 10)
+    if(!_initialized || digit > 11)
         return;
 
     _sr_instance->clearAll();
     _sr_instance->setBit(srnixpm[digit]);
     _sr_instance->clockOut();
 }
+
 
 /**
  * @brief function call to latch out data
@@ -59,6 +60,33 @@ void SRnixie::latch()
     _sr_instance->latchOut();
 }
 
+/**
+ * @brief call to set the max output brightness of the nixie
+ * @param maxb (double) 0-1
+ */
+void SRnixie::setMaxBrightness(double maxb)
+{
+    // sec chk
+    maxb = maxb > 1? 1 : maxb;
+    maxb = maxb < 0? 0 : maxb;
+
+    _maxb = maxb;
+}
+
+/**
+ * @brief call to set the min output brightness of the nixie
+ * @param minb (double) 0-1
+ */
+void SRnixie::setMinBrightness(double minb)
+{
+    // sec chk
+    minb = minb > 1? 1 : minb;
+    minb = minb < 0? 0 : minb;
+
+    _minb = minb;
+}
+
+
 
 /**
  * @brief function call to set the nixie brightness 
@@ -69,49 +97,5 @@ void SRnixie::setBrightness(uint8_t brightness)
     if(!_initialized)
         return;
 
-    _brightness = brightness;
-}
-
-/**
- * @brief call to set the fade type
- * @param fade_type refer to class header
- */
-void SRnixie::setFade(sr_nixie_fade_t fade_type)
-{
-    _fade_type = fade_type;
-}
-
-/**
- * @brief call to update the nixies current brightness as configured by the
- * fade styles
- * @warning fps is dependant on caller
- */
-void SRnixie::updateNixie()
-{
-    if(!_initialized)
-        return;
-    
-    switch(_fade_type)
-    {
-        case sr_nixie_fade_linear:
-            _current_brightness = _current_brightness < _brightness? _current_brightness + 1 : _current_brightness;
-            _current_brightness = _current_brightness > _brightness? _current_brightness - 1 : _current_brightness;
-            break;
-        case sr_nixie_fade_instant:
-            _current_brightness = _brightness;
-            break;
-        default:
-            _current_brightness = _brightness;
-            break;
-    }
-    analogWrite(_bpin, _current_brightness);
-}
-
-/**
- * @brief call to check if the set brightness was sent out
- * @return bool, true if brightness is set on the nixie 
- */
-bool SRnixie::isBrightnessSet()
-{
-    return _current_brightness == _brightness;
+    analogWrite(_bpin, (0xFF - (uint8_t)(_maxb*brightness)));
 }

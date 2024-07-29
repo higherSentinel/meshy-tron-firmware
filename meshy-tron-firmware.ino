@@ -18,11 +18,14 @@ static char strbuf[0xFF];
 bool clock_not_synced = false;
 bool minute_int_flag = false;
 
+// struct for the nixie front end display
+nixie_frontend_t fe_data;
+
 
 // isr for the minute-by-minute update
 void minuteISR()
 {
-  minute_int_flag = true;
+  // minute_int_flag = true;
 }
 
 
@@ -77,19 +80,16 @@ void setup()
   nixie[3].init(&sr4, NIXIE_PWM_4);
   #endif
 
-  // set all nixies to 0
-  for(uint8_t i = 0; i < 4; i++)
-  {
-    nixie[i].setDigit(0);
-    nixie[i].setBrightness(CONV_NIXIE_BRIGHTNES(NIXIE_MIN_BRIGHTNESS));
-    nixie[i].updateNixie();
-    nixie[i].setFade(sr_nixie_fade_linear);
-  }
+  // start the nixie front end
+  // make the struct to be shared
+  fe_data.nixies[0] = &nixie[3];
+  fe_data.nixies[1] = &nixie[2];
+  fe_data.nixies[2] = &nixie[1];
+  fe_data.nixies[3] = &nixie[0];
+  fe_data.latch_pin = NIXIE_SR_COM_LAT;
+  NixieFrontend::getInstance().init(&fe_data);
+  NixieFrontend::getInstance().setFadeType(nixie_fade_animation_linear);
 
-  delay(10);
-
-  // send out
-  latchAllNixies();
   #endif
 
   // init mini-display
@@ -132,98 +132,42 @@ uint64_t loop_et = 0;
 uint16_t mcount = 1;
 uint8_t nixie_cur_digits[4];
 uint8_t nixie_digits[4];
+uint32_t n_et = 0;
 bool update_digits = false;
 
 void loop()
 {
+
+  // manual trigger
+  if(millis() > (n_et + 6000))
+  {
+    minute_int_flag = true;
+    n_et = millis();
+  }
+
   // frame time, if not elapsed return
   if((loop_et + FRAME_TIME) > millis())
     return;
-  
+    
   // update displays
-  
-  // update nixies
-  for(uint8_t i = 0; i < 4; i++)
-  {
-    nixie[i].updateNixie();
-  }
-
-  updateNixieDigits();
-
   if(minute_int_flag)
   {
     mcount = mcount<<1;
     mcount = mcount == 0? 1 : mcount;
     sprintf(strbuf, "%4d", mcount);
     md.setText(strbuf);
-    Logger::verbose("LOOP: ", strbuf);
-
-    // find out which nixies need to be updated
-    for(uint8_t i = 0; i < 4; i++)
-    {
-      nixie_digits[i] = strbuf[4-1-i];
-      Serial.print("digit ");
-      Serial.print(i);
-      Serial.print("=");
-      Serial.println((char)nixie_digits[i]);
-      if((nixie_digits[i] != nixie_cur_digits[i]) || nixie_digits[i] == ' ')
-      {
-        nixie[i].setBrightness(CONV_NIXIE_BRIGHTNES(NIXIE_MIN_BRIGHTNESS));
-      }
-    }
-
-    update_digits = true;
+    NixieFrontend::getInstance().setText(strbuf);
     minute_int_flag = false;
     DS3231::getInstance().clearAlarmFlag(Alarm2);
   }
 
-  
+  // call front end update method
+  DisplayModule::run();
+  NixieFrontend::getInstance().update();
 
   // sprintf(strbuf, "UPTIME (ms, u32): %d", millis());
   // Logger::verbose("LOOP: ", strbuf);
 
   // update loop et for next frame
   loop_et = millis();
-}
-
-// external latch
-void latchAllNixies()
-{
-    digitalWrite(NIXIE_SR_COM_LAT, !0);
-    // delay not necessary but jic
-    delayMicroseconds(1);
-    digitalWrite(NIXIE_SR_COM_LAT, 0);
-}
-
-// external to update the nixie digits
-void updateNixieDigits()
-{
-  if(update_digits)
-  {
-    // check if all the nixies have reached zero and update the
-    for(uint8_t i = 0; i < 4; i++)
-    {
-      if(!nixie[i].isBrightnessSet())
-        return;
-    }
-
-    // set digits to all of em since common latch
-    for(uint8_t i = 0; i < 4; i++)
-    {
-      if((nixie_cur_digits[i]!=nixie_digits[i]) && nixie_digits[i] != ' ')
-      {
-          nixie[i].setBrightness(CONV_NIXIE_BRIGHTNES(NIXIE_MAX_BRIGHTNESS));
-      }
-      nixie_cur_digits[i] = nixie_digits[i];
-      if(nixie_cur_digits[i] > 47 && nixie_cur_digits[i] < 58)
-      {
-        nixie[i].setDigit(nixie_cur_digits[i]-48);
-      }
-    }
-  }
-
-  // allof the nixies have reached zero brightness
-  // send out updated digits & clear update flag
-  latchAllNixies();
-  update_digits = false;
 }

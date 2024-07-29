@@ -5,17 +5,15 @@
 #include "Arduino.h"
 #include "../SR595/SR595.h"
 
-typedef enum
-{
-    sr_nixie_fade_instant,
-    sr_nixie_fade_linear,
-}sr_nixie_fade_t;
+// local defines
+#define NIXIE_DEFAULT_MINB 0
+#define NIXIE_DEFAULT_MAXB 0.5
 
 // wrapper class for the shift register based nixie tubes
 class SRnixie
 {
-    // LUT for sr to nixie pin map       |   0  1  2  3  4  5  6   7   8   9  .
-    static constexpr uint8_t srnixpm[11] = {14, 1, 2, 3, 4, 5, 6, 7, 12, 13, 15};
+    // LUT for sr to nixie pin map       |   0  1  2  3  4  5  6   7   8   9  10'.'  11'blank'
+    static constexpr uint8_t srnixpm[12] = {14, 1, 2, 3, 4, 5, 6, 7, 12, 13,  15,    0};
 
     public:
         SRnixie();
@@ -24,17 +22,15 @@ class SRnixie
         void setDigit(uint8_t digit);
         void latch();
         void setBrightness(uint8_t brightness);
-        void updateNixie();
-        void setFade(sr_nixie_fade_t fade_type);
-        bool isBrightnessSet();
+        void setMinBrightness(double minb);
+        void setMaxBrightness(double maxb);
 
     private:
         SR595 * _sr_instance;
         bool _initialized = false;
         uint32_t _bpin;
-        uint8_t _brightness = 0;
-        uint8_t _current_brightness = 255; // OE active low
-        sr_nixie_fade_t _fade_type = sr_nixie_fade_instant;
+        double _maxb = NIXIE_DEFAULT_MAXB;
+        double _minb = NIXIE_DEFAULT_MINB;
 };
 
 #endif
