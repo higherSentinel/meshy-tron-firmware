@@ -29,6 +29,9 @@ void NixieFrontend::init(nixie_frontend_t * devs)
     }
     latchNixies();
 
+    // add self to display module
+    addDisplay(this);
+
     _initialized = true;
 }
 

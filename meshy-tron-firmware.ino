@@ -111,8 +111,12 @@ void setup()
 
   // init separator LED
   #ifdef ENABLE_SEPARATOR_LED
-  SeparatorLED::getInstance().init(SEPARATION_LED_PIN, SEPARATOR_INTERVAL_MS, SEPARATOR_MAX_BRIGHTNESS);
+  SeparatorLED::getInstance().init(SEPARATION_LED_PIN, SEPARATOR_MAX_BRIGHTNESS);
   #endif
+
+  // start modules
+  // DisplayModule::addDisplay(&SeparatorLED::getInstance());
+  DisplayModule::initModule(DISPLAY_MODULE_INTERVAL_MS);
 
   // start I2C bus
   Wire.begin();
@@ -155,15 +159,15 @@ void loop()
     mcount = mcount<<1;
     mcount = mcount == 0? 1 : mcount;
     sprintf(strbuf, "%4d", mcount);
-    md.setText(strbuf);
+    // md.setText(strbuf);
     NixieFrontend::getInstance().setText(strbuf);
     minute_int_flag = false;
     DS3231::getInstance().clearAlarmFlag(Alarm2);
   }
 
   // call front end update method
-  DisplayModule::run();
-  NixieFrontend::getInstance().update();
+  // DisplayModule::run();
+  // NixieFrontend::getInstance().update();
 
   // sprintf(strbuf, "UPTIME (ms, u32): %d", millis());
   // Logger::verbose("LOOP: ", strbuf);
