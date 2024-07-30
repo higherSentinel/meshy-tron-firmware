@@ -8,6 +8,7 @@
 #include "src/libs/dev/SeparatorLED/SeparatorLED.h"
 #include "src/libs/dev/DS3231/DS3231.h"
 #include "src/libs/hw-modules/NixieFrontend/NixieFrontend.h"
+#include "src/libs/hw-modules/MiniDisplay/MiniDisplay.h"
 #include <Wire.h>
 #include "board-def.h"
 #include "task-info.h"
@@ -36,4 +37,4 @@
 #define FRAME_TIME          (1000.00/FRAME_RATE)
 
 // sw-module params
-#define DISPLAY_MODULE_INTERVAL_MS       2560
+#define DISPLAY_MODULE_INTERVAL_MS       3072

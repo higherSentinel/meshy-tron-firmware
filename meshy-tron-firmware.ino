@@ -89,7 +89,6 @@ void setup()
   fe_data.latch_pin = NIXIE_SR_COM_LAT;
   NixieFrontend::getInstance().init(&fe_data);
   NixieFrontend::getInstance().setFadeType(nixie_fade_animation_linear);
-
   #endif
 
   // init mini-display
@@ -106,7 +105,7 @@ void setup()
   segdisppdef.d[5] = HPDL1414_D5;
   segdisppdef.d[6] = HPDL1414_D6; 
   md.init(&segdisppdef);
-  md.blank();
+  MiniDisplay::getInstance().init(&md);
   #endif
 
   // init separator LED
@@ -115,7 +114,6 @@ void setup()
   #endif
 
   // start modules
-  // DisplayModule::addDisplay(&SeparatorLED::getInstance());
   DisplayModule::initModule(DISPLAY_MODULE_INTERVAL_MS);
 
   // start I2C bus
@@ -131,8 +129,19 @@ void setup()
   Logger::verbose("- SETUP COMPLETE -");
 }
 
+mini_display_animation_t* animations[7] = 
+{
+  &animation_loading_star,
+  &animation_knight_rider_dot,
+  &animation_knight_rider_dash,
+  &animation_fwrdbkwrd,
+  &animation_wave,
+  &animation_cart_wheel,
+  &animation_rolling_plank,
+};
 
 uint64_t loop_et = 0;
+uint8_t a_count = 0;
 uint16_t mcount = 1;
 uint8_t nixie_cur_digits[4];
 uint8_t nixie_digits[4];
@@ -143,7 +152,7 @@ void loop()
 {
 
   // manual trigger
-  if(millis() > (n_et + 6000))
+  if(millis() > (n_et + 8000))
   {
     minute_int_flag = true;
     n_et = millis();
@@ -159,15 +168,13 @@ void loop()
     mcount = mcount<<1;
     mcount = mcount == 0? 1 : mcount;
     sprintf(strbuf, "%4d", mcount);
-    // md.setText(strbuf);
+    // MiniDisplay::getInstance().setText(strbuf);
+    MiniDisplay::getInstance().setAnimation(animations[a_count++]);
+    a_count %= 7;
     NixieFrontend::getInstance().setText(strbuf);
     minute_int_flag = false;
     DS3231::getInstance().clearAlarmFlag(Alarm2);
   }
-
-  // call front end update method
-  // DisplayModule::run();
-  // NixieFrontend::getInstance().update();
 
   // sprintf(strbuf, "UPTIME (ms, u32): %d", millis());
   // Logger::verbose("LOOP: ", strbuf);
