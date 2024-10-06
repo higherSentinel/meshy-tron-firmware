@@ -4,7 +4,7 @@
 // local includes
 #include "Arduino.h"
 #include "../../dev/SRnixie/SRnixie.h"
-#include "../../../DisplayModule.h"
+#include "./../../sw-modules/DisplayModule/DisplayModule.h"
 
 // local defines
 #define MAX_NUMBER_OF_DIGITS 4

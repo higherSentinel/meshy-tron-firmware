@@ -4,7 +4,7 @@
 // local includes
 #include "Arduino.h"
 #include "../../dev/HPDL1414/HPDL1414.h"
-#include "../../../DisplayModule.h"
+#include "./../../sw-modules/DisplayModule/DisplayModule.h"
 #include "MINI_DISPLAY_ANIMATIONS.h"
 
 // local defines

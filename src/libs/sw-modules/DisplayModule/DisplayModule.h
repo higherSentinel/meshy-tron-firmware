@@ -4,9 +4,9 @@
 
 // local includes
 #include "Arduino.h"
-#include "../task-info.h"
+#include "../../../../task-info.h"
 #include <Logger.h>
-#include "libs/generators/LinearRampFF/LinearRampFF.h"
+#include "../../generators/LinearRampFF/LinearRampFF.h"
 
 // local defines
 #define MAX_NO_OF_DISPLAY_MODULES 4

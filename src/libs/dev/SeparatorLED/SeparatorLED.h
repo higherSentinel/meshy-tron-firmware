@@ -3,7 +3,7 @@
 
 // local includes
 #include "Arduino.h"
-#include "../../../DisplayModule.h"
+#include "../../sw-modules/DisplayModule/DisplayModule.h"
 
 // local defines
 #define SEPLED_MIN_PULSE_TIME_MS    0x200
