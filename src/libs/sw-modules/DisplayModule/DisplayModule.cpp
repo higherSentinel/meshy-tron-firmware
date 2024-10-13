@@ -26,7 +26,7 @@ void DisplayModule::run(void * params)
         }
 
         // delay according to frametime
-        vTaskDelay(_frame_time);
+        vTaskDelay(_task_wait_time);
     }
 }
 
@@ -37,7 +37,7 @@ uint8_t DisplayModule::initModule()
 {
     // cal and set the pulse period
     uint32_t temp = _pulse_period_ms < MIN_PULSE_TIME_MS? MIN_PULSE_TIME_MS : _pulse_period_ms;
-    _frame_time = temp / (double)MIN_PULSE_TIME_MS;
+    _task_wait_time = temp / (double)MIN_PULSE_TIME_MS;
 
     // try and start the thread
     if (xTaskCreate(DisplayModule::startTsk, TASK_DISPLAY_MODULE_NAME, TASK_DISPLAY_MODULE_STACK_SIZE, NULL, TASK_DISPLAY_MODULE_PRIORITY, DisplayModule::getInstance().tsk_handle) != pdPASS)

@@ -4,7 +4,7 @@
 
 // local includes
 #include "Arduino.h"
-#include "../SWModule/SWModule.h"
+#include "../SWModule.h"
 #include "../../generators/LinearRampFF/LinearRampFF.h"
 #include "DisplayFE.h"
 
@@ -26,7 +26,6 @@ class DisplayModule final : SWModule
     
     private:
         DisplayModule() = default;
-        uint32_t _frame_time;
         bool _initialized;
         DisplayFE* _displays[MAX_NO_OF_DISPLAY_MODULES];
         uint8_t _dcount;
