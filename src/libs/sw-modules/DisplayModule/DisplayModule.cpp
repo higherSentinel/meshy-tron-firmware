@@ -1,7 +1,7 @@
 #include "DisplayModule.h"
 
 TaskHandle_t* DisplayModule::dispmod_tsk_handle;
-DisplayModule* DisplayModule::_displays[MAX_NO_OF_DISPLAY_MODULES];
+DisplayFE* DisplayModule::_displays[MAX_NO_OF_DISPLAY_MODULES];
 uint8_t DisplayModule::_dcount;
 uint32_t DisplayModule::_frame_time;
 bool DisplayModule::_initialized;
@@ -52,7 +52,7 @@ uint8_t DisplayModule::initModule(uint32_t pulse_period_ms)
  * @brief function call to add a display to the display module
  * @param display pointer to the display
 */
-void DisplayModule::addDisplay(DisplayModule * display)
+void DisplayModule::addDisplay(DisplayFE * display)
 {
     if(display == nullptr)
         return;

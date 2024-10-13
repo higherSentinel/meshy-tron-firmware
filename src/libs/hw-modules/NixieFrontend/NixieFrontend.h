@@ -36,7 +36,7 @@ typedef enum
     nixie_update_ramp_dwn_only,
 }nixie_update_t;
 
-class NixieFrontend : DisplayModule
+class NixieFrontend : DisplayFE
 {
     public:
         ~NixieFrontend() = default;

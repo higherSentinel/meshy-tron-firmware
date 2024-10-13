@@ -41,7 +41,7 @@ SeparatorLED::~SeparatorLED()
    digitalWrite(_pin, 0);
 
    // add self to display module
-   addDisplay(this);
+   DisplayModule::addDisplay(this);
 
    _initialized = true;
  }

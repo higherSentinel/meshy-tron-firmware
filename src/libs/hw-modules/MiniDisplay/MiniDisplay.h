@@ -19,7 +19,7 @@ typedef enum
     mini_display_state_text,
 }mini_display_state_t;
 
-class MiniDisplay : DisplayModule
+class MiniDisplay : DisplayFE
 {
     public:
         ~MiniDisplay() = default;

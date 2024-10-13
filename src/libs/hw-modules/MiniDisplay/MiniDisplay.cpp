@@ -15,7 +15,7 @@ void MiniDisplay::init(HPDL1414 * dev)
     _dev = dev;
 
     // add self to display module
-    addDisplay(this);
+    DisplayModule::addDisplay(this);
 
     _initialized = true;
 }

@@ -4,6 +4,7 @@
 
 // local includes
 #include "Arduino.h"
+#include "DisplayFE.h"
 #include "../../../../task-info.h"
 #include <Logger.h>
 #include "../../generators/LinearRampFF/LinearRampFF.h"
@@ -18,15 +19,14 @@ class DisplayModule
         DisplayModule() = default;
         ~DisplayModule() = default;
         static TaskHandle_t * dispmod_tsk_handle;
-        virtual void update()= 0; // force the children... hahaha >)
         static uint8_t initModule(uint32_t pulse_period_ms);
         static void run(void * params);
-        static void addDisplay(DisplayModule * display);
+        static void addDisplay(DisplayFE * display);
     
     private:
         static uint32_t _frame_time;
         static bool _initialized;
-        static DisplayModule* _displays[MAX_NO_OF_DISPLAY_MODULES];
+        static DisplayFE* _displays[MAX_NO_OF_DISPLAY_MODULES];
         static uint8_t _dcount;
 };
 

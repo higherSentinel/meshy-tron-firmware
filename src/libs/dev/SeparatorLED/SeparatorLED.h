@@ -9,7 +9,7 @@
 #define SEPLED_MIN_PULSE_TIME_MS    0x200
 
 // it ain't much but a god damn wrapper for an LED
-class SeparatorLED : DisplayModule
+class SeparatorLED : DisplayFE
 {
     public:
         static SeparatorLED& getInstance();
