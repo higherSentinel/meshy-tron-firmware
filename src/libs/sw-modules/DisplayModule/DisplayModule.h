@@ -4,30 +4,33 @@
 
 // local includes
 #include "Arduino.h"
-#include "DisplayFE.h"
-#include "../../../../task-info.h"
-#include <Logger.h>
+#include "../SWModule/SWModule.h"
 #include "../../generators/LinearRampFF/LinearRampFF.h"
+#include "DisplayFE.h"
 
 // local defines
 #define MAX_NO_OF_DISPLAY_MODULES 4
 #define MIN_PULSE_TIME_MS 0x200  // due to FF ramp
+#define DISPLAY_MODULE_DEFAULT_PERIOD_MS 3072   
 
-class DisplayModule
+class DisplayModule final : SWModule
 {
     public:
-        DisplayModule() = default;
         ~DisplayModule() = default;
-        static TaskHandle_t * dispmod_tsk_handle;
-        static uint8_t initModule(uint32_t pulse_period_ms);
-        static void run(void * params);
-        static void addDisplay(DisplayFE * display);
+        static DisplayModule& getInstance();
+        uint8_t initModule();
+        void setPulsePeriod(uint32_t p);
+        void run(void * params);
+        static void startTsk(void * params);
+        void addDisplay(DisplayFE * display);
     
     private:
-        static uint32_t _frame_time;
-        static bool _initialized;
-        static DisplayFE* _displays[MAX_NO_OF_DISPLAY_MODULES];
-        static uint8_t _dcount;
+        DisplayModule() = default;
+        uint32_t _frame_time;
+        bool _initialized;
+        DisplayFE* _displays[MAX_NO_OF_DISPLAY_MODULES];
+        uint8_t _dcount;
+        uint32_t _pulse_period_ms = DISPLAY_MODULE_DEFAULT_PERIOD_MS;
 };
 
 #endif

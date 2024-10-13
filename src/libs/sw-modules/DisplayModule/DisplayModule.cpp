@@ -1,10 +1,13 @@
 #include "DisplayModule.h"
 
-TaskHandle_t* DisplayModule::dispmod_tsk_handle;
-DisplayFE* DisplayModule::_displays[MAX_NO_OF_DISPLAY_MODULES];
-uint8_t DisplayModule::_dcount;
-uint32_t DisplayModule::_frame_time;
-bool DisplayModule::_initialized;
+/**
+ * singleton
+*/
+DisplayModule& DisplayModule::getInstance()
+{
+    static DisplayModule instance;
+    return instance;
+}
 
 /**
  * @brief thread call, calls updates of the displays part of the module
@@ -28,17 +31,16 @@ void DisplayModule::run(void * params)
 }
 
 /**
- * @brief thread call, calls "updates" of the displays part of the module
- * @param 
+ * @brief init module
 */
-uint8_t DisplayModule::initModule(uint32_t pulse_period_ms)
+uint8_t DisplayModule::initModule()
 {
     // cal and set the pulse period
-    uint32_t temp = pulse_period_ms < MIN_PULSE_TIME_MS? MIN_PULSE_TIME_MS : pulse_period_ms;
+    uint32_t temp = _pulse_period_ms < MIN_PULSE_TIME_MS? MIN_PULSE_TIME_MS : _pulse_period_ms;
     _frame_time = temp / (double)MIN_PULSE_TIME_MS;
 
     // try and start the thread
-    if (xTaskCreate(DisplayModule::run, TASK_DISPLAY_MODULE_NAME, TASK_DISPLAY_MODULE_STACK_SIZE, NULL, TASK_DISPLAY_MODULE_PRIORITY, DisplayModule::dispmod_tsk_handle) != pdPASS)
+    if (xTaskCreate(DisplayModule::startTsk, TASK_DISPLAY_MODULE_NAME, TASK_DISPLAY_MODULE_STACK_SIZE, NULL, TASK_DISPLAY_MODULE_PRIORITY, DisplayModule::getInstance().tsk_handle) != pdPASS)
     {
         Logger::error("DISPLAY MODULE: ", "TASK START FAIL");
         return 0xFF;
@@ -46,6 +48,23 @@ uint8_t DisplayModule::initModule(uint32_t pulse_period_ms)
 
     _initialized = true;
     return 0;
+}
+
+/**
+ * @brief wrapper for the run method
+*/
+void DisplayModule::startTsk(void* params)
+{
+    DisplayModule::getInstance().run(params);
+}
+
+/**
+ * @brief call to set the display module period
+ * @param p period in ms
+*/
+void DisplayModule::setPulsePeriod(uint32_t p)
+{
+    _pulse_period_ms = p;
 }
 
 /**

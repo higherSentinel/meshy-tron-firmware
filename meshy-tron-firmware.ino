@@ -114,7 +114,8 @@ void setup()
   #endif
 
   // start modules
-  DisplayModule::initModule(DISPLAY_MODULE_INTERVAL_MS);
+  DisplayModule::getInstance().setPulsePeriod(DISPLAY_MODULE_INTERVAL_MS);
+  DisplayModule::getInstance().initModule();
 
   // start I2C bus
   Wire.begin();
