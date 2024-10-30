@@ -68,6 +68,15 @@ uint8_t MiniDisplay::setText(char * txt)
 }
 
 /**
+ * @brief call to blank / clear the display
+*/
+void MiniDisplay::blank()
+{
+    // update state
+    _disp_state = mini_display_state_blank;
+}
+
+/**
  * @brief display module update call. called externally within animation loop
  */
 void MiniDisplay::update()

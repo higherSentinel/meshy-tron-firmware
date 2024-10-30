@@ -50,7 +50,7 @@ bool startRTC()
     DS3231::getInstance().alarmInterruptEnable(Alarm2, true);
 }
 
- 
+WiFiUDP udp_ins;
 
 void setup()
 {
@@ -120,6 +120,26 @@ void setup()
   // start I2C bus
   Wire.begin();
 
+  // connect to WiFi
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  MiniDisplay::getInstance().setAnimation(&animation_knight_rider_dot);
+
+  while(WiFi.status() != WL_CONNECTED)
+  {
+    // busy - wait
+    delay(100);
+  }
+
+  MiniDisplay::getInstance().setText("WIFI");
+  delay(1000);
+  MiniDisplay::getInstance().setText("CONN");
+  delay(1000);
+  MiniDisplay::getInstance().blank();
+
+  // setup ntp
+  SNTPClient::getInstance().init(&udp_ins);
+
   // start RTC
   if(!startRTC())
   {
@@ -141,7 +161,7 @@ mini_display_animation_t* animations[7] =
   &animation_rolling_plank,
 };
 
-uint64_t loop_et = 0;
+uint64_t ntp_et = 0;
 uint8_t a_count = 0;
 uint16_t mcount = 1;
 uint8_t nixie_cur_digits[4];
@@ -158,10 +178,6 @@ void loop()
     minute_int_flag = true;
     n_et = millis();
   }
-
-  // frame time, if not elapsed return
-  if((loop_et + FRAME_TIME) > millis())
-    return;
     
   // update displays
   if(minute_int_flag)
@@ -177,9 +193,17 @@ void loop()
     DS3231::getInstance().clearAlarmFlag(Alarm2);
   }
 
+  // ntp every 30s
+  if(millis() > ntp_et)
+  {
+    if(SNTPClient::getInstance().reqNTPtime())
+    {
+      Serial.println(SNTPClient::getInstance().getEpoch());
+      ntp_et = millis() + 5000; // 5s delay
+    }
+    delay(10);
+  }
+
   // sprintf(strbuf, "UPTIME (ms, u32): %d", millis());
   // Logger::verbose("LOOP: ", strbuf);
-
-  // update loop et for next frame
-  loop_et = millis();
 }

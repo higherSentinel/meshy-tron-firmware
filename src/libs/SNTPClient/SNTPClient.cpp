@@ -16,7 +16,7 @@ SNTPClient::~SNTPClient(){}
  * @param udp_inst instance pointing to the UDP object. caller is responsible for creating the object
  * @param time_offset time zone diff
 */
-void SNTPClient::init(UDP* udp_inst, const char* server_name, uint64_t time_offset)
+void SNTPClient::init(NetworkUDP* udp_inst, const char* server_name, uint64_t time_offset)
 {
     // pointer patrol
     if(udp_inst == nullptr)
@@ -26,6 +26,7 @@ void SNTPClient::init(UDP* udp_inst, const char* server_name, uint64_t time_offs
         return;
 
     _udp = udp_inst;
+    _udp->begin(SNTPC_PORT);
     strncpy(_pool_name, server_name, SNTPC_SERVER_NAME_MAX_LEN);
     
     // flag up
@@ -52,12 +53,20 @@ void SNTPClient::setServerName(const char* name)
  */
 void SNTPClient::setServerIP(IPAddress ip)
 {
-    // pointer patrol
-    if(name == nullptr)
-        return;
-
     _pool_ip = ip;
     _use_ip = true;
+}
+
+/**
+ * @brief call to get the epoch
+ * @returns (uint32_t) 
+ */
+uint32_t SNTPClient::getEpoch()
+{
+    if(!_initialized)
+        return 0;
+    
+    return _epoch;
 }
 
 
@@ -66,21 +75,20 @@ void SNTPClient::setServerIP(IPAddress ip)
  * to the server to sync time 
  * @returns true on success. It's recommended to read the epoch before the next call to getNTPTime
  */
-bool SNTPClient::getNTPtime()
+bool SNTPClient::reqNTPtime()
 {
+    // to be used in sm sub states
+    int ret = 0;
 
     switch(_sm_state)
     {
-        // to be used in sm sub states
-        int ret = 0;
-
         case sntpc_sm_init:
             // reset
             memset(_data_out.raw, 0, sizeof(ntp_packet_t));
 
             // setup ntp v4
             _data_out.ntp_pkt.li = 3;           // unknown
-            _data_out.ntp_pkt.vn = 4            // v4
+            _data_out.ntp_pkt.vn = 4;           // v4
             _data_out.ntp_pkt.mode = 3;         // client
             _data_out.ntp_pkt.stratum = 0;      // unspecified
             _data_out.ntp_pkt.poll = 6;         // speced minimum
@@ -88,7 +96,7 @@ bool SNTPClient::getNTPtime()
 
             // setup a sick message in refID, refID is typically used for clock identification, we identify as SICK, but the server will
             // most likely respond with it's ip, on rare occasions we might(never) get GOES
-            _data_out.ntp_pkt.ref_Id = 0x5349434B
+            _data_out.ntp_pkt.ref_Id = 0x5349434B;
 
             _fcount = 0;
 
@@ -110,7 +118,7 @@ bool SNTPClient::getNTPtime()
 
         // this will establish a udp stream on the speced port and name, if unsuccessfull something went wrong
         case sntpc_sm_begin_pkt:
-            ret = _udp->beginPacket(_use_ip? _pool_ip : _pool_name, SNTPC_PORT);
+            ret = _udp->beginPacket(_pool_name, SNTPC_PORT);
             if(ret == 0)
             {
                 // failed reset to init
@@ -151,6 +159,7 @@ bool SNTPClient::getNTPtime()
                 // waited too long
                 _sm_state = sntpc_sm_init; 
             }
+            _fcount++;
             break;
         
         // read the response in to the in buf
@@ -161,11 +170,12 @@ bool SNTPClient::getNTPtime()
                 _sm_state = sntpc_sm_init;
                 return false;
             }
+            _sm_state = snptc_sm_decode; 
             break;
 
         // decode the data
         case snptc_sm_decode:
-            // nothing to do for now, reserved for future versions of ntp
+            _epoch = ntohl(_data_in.ntp_pkt.tx_ts_s) - 2208988800UL;
             // reset and return good news
             _sm_state = sntpc_sm_init;
             return true;

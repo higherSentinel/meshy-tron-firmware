@@ -9,9 +9,13 @@
 #include "src/libs/dev/DS3231/DS3231.h"
 #include "src/libs/hw-modules/NixieFrontend/NixieFrontend.h"
 #include "src/libs/hw-modules/MiniDisplay/MiniDisplay.h"
+#include "src/libs/SNTPClient/SNTPClient.h"
 #include <Wire.h>
 #include "board-def.h"
 #include "task-info.h"
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include "creds.h"
 
 // global defines
 #define SERIAL_BAUD         115200
@@ -31,10 +35,6 @@
 #define ENABLE_SEPARATOR_LED // comment to disable the seperator led
 #define SEPARATOR_MAX_BRIGHTNESS    0.25 // 0-1
 
-
-// animation timing
-#define FRAME_RATE          256.00 //fps
-#define FRAME_TIME          (1000.00/FRAME_RATE)
 
 // sw-module params
 #define DISPLAY_MODULE_INTERVAL_MS       3072

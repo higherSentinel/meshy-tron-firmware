@@ -3,13 +3,13 @@
 
 // local includes
 #include "Arduino.h"
-#include "Udp.h"
+#include "NetworkUdp.h"
 
 
 // local defines
-#define SNTPC_DEFAULT_SERVER        pool.ntp.org
+#define SNTPC_DEFAULT_SERVER        "fi.pool.ntp.org"
 #define SNTPC_PORT                  123
-#define SNTPC_SERVER_NAME_MAX_LEN   0x40;
+#define SNTPC_SERVER_NAME_MAX_LEN   0x40
 #define SNTPC_FCOUNT                50
 
 // not to be used with parallel udp streams, call to getNTPtime flushes the udp buffers. use with caution
@@ -20,13 +20,13 @@ class SNTPClient
     #pragma pack(push,1)
     typedef struct
     {
-        uint8_t li:2;                 // leep indicator
-        uint8_t vn:3;                 // version number
         uint8_t mode:3;               // mode
+        uint8_t vn:3;                 // version number
+        uint8_t li:2;                 // leep indicator
 
         uint8_t stratum;              // stratum level of the local clock
-        int8_t poll;                 // maximum interval between successive messages
-        int8_t precision;            // precision of the local clock
+        int8_t poll;                  // maximum interval between successive messages
+        int8_t precision;             // precision of the local clock
 
         uint32_t root_delay;          // total round trip delay time
         uint32_t root_dispersion;     // max error aloud from primary clock source
@@ -74,9 +74,10 @@ class SNTPClient
     public:
         static SNTPClient& getInstance();
         ~SNTPClient();
-        bool getNTPtime();
-        void init(UDP* udp_inst, const char* server_name = SNTPC_DEFAULT_SERVER, uint64_t time_offset = 0);
+        bool reqNTPtime();
+        void init(NetworkUDP* udp_inst, const char* server_name = SNTPC_DEFAULT_SERVER, uint64_t time_offset = 0);
         void setServerName(const char* name);
+        uint32_t getEpoch();
         void setServerIP(IPAddress ip);
 
 
@@ -84,13 +85,14 @@ class SNTPClient
         SNTPClient();
         ntp_stream_t    _data_out; 
         ntp_stream_t    _data_in; 
-        UDP*            _udp;
-        char*           _pool_name[SNTPC_SERVER_NAME_MAX_LEN];
+        NetworkUDP*     _udp;
+        char            _pool_name[SNTPC_SERVER_NAME_MAX_LEN];
         IPAddress       _pool_ip;
         bool            _initialized;
         bool            _use_ip = false;
         sntpc_sm_t      _sm_state;
         uint16_t        _fcount;
+        uint32_t        _epoch;
 };
 
 #endif

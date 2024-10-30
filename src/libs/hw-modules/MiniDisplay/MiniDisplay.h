@@ -33,6 +33,7 @@ class MiniDisplay : DisplayFE
         void init(HPDL1414* dev);
         void setAnimation(mini_display_animation_t * anim);
         uint8_t setText(char * str);
+        void blank();
         void update();
 
     private:
