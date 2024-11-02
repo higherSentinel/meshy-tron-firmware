@@ -193,15 +193,22 @@ void loop()
     DS3231::getInstance().clearAlarmFlag(Alarm2);
   }
 
-  // ntp every 30s
-  if(millis() > ntp_et)
+  // ntp once
+  if(ntp_et != 1)
   {
     if(SNTPClient::getInstance().reqNTPtime())
     {
-      Serial.println(SNTPClient::getInstance().getEpoch());
-      ntp_et = millis() + 5000; // 5s delay
-    }
+      ntp_et = 1;
+    } 
     delay(10);
+  }
+  if(ntp_et == 1)
+  {
+    // synced and internally tracked with millis
+      uint32_t epoch = SNTPClient::getInstance().getEpoch();
+      sprintf(strbuf, "ephoch = %ld", epoch);
+      Logger::verbose("SNTP", strbuf);
+      delay(1000);
   }
 
   // sprintf(strbuf, "UPTIME (ms, u32): %d", millis());

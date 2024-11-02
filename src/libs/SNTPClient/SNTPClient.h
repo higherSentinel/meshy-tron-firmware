@@ -10,7 +10,8 @@
 #define SNTPC_DEFAULT_SERVER        "fi.pool.ntp.org"
 #define SNTPC_PORT                  123
 #define SNTPC_SERVER_NAME_MAX_LEN   0x40
-#define SNTPC_FCOUNT                50
+#define SNTP_RESP_WAIT_TIME_MS      1000
+#define SNTP_RESP_POLL_DELTA_MS     50                 
 
 // not to be used with parallel udp streams, call to getNTPtime flushes the udp buffers. use with caution
 
@@ -60,8 +61,9 @@ class SNTPClient
         sntpc_sm_begin_pkt,
         sntpc_sm_send_packet,
         sntpc_sm_await_response,
-        snptc_sm_read_response,
-        snptc_sm_decode,
+        sntpc_sm_read_response,
+        sntpc_sm_decode,
+        sntpc_sm_reset,
     }sntpc_sm_t;
 
     typedef union
@@ -93,6 +95,12 @@ class SNTPClient
         sntpc_sm_t      _sm_state;
         uint16_t        _fcount;
         uint32_t        _epoch;
+        uint32_t        _temp_ts;
+        uint32_t        _send_pkt_ts;
+        uint32_t        _await_to_ts;
+        uint32_t        _await_resp_ts;
+        uint32_t        _pkt_rx_ts;
+        uint32_t        _server_ts_ms;
 };
 
 #endif

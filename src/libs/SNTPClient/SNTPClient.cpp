@@ -26,7 +26,6 @@ void SNTPClient::init(NetworkUDP* udp_inst, const char* server_name, uint64_t ti
         return;
 
     _udp = udp_inst;
-    _udp->begin(SNTPC_PORT);
     strncpy(_pool_name, server_name, SNTPC_SERVER_NAME_MAX_LEN);
     
     // flag up
@@ -66,7 +65,11 @@ uint32_t SNTPClient::getEpoch()
     if(!_initialized)
         return 0;
     
-    return _epoch;
+    // millis ovf
+    if(millis() < _pkt_rx_ts)
+        return 0;
+
+    return _epoch + (_server_ts_ms + (millis()-_pkt_rx_ts)) / 1000.00;
 }
 
 
@@ -100,8 +103,11 @@ bool SNTPClient::reqNTPtime()
 
             _fcount = 0;
 
-            // advance
-            _sm_state = sntpc_sm_flush_udp;
+            // advance if udp begins
+            if(_udp->begin(SNTPC_PORT) == 1)
+            {
+                _sm_state = sntpc_sm_flush_udp;
+            }
             break;
             
         // flush out the udp buffers
@@ -121,8 +127,8 @@ bool SNTPClient::reqNTPtime()
             ret = _udp->beginPacket(_pool_name, SNTPC_PORT);
             if(ret == 0)
             {
-                // failed reset to init
-                _sm_state = sntpc_sm_init;
+                // failed, reset
+                _sm_state = sntpc_sm_reset;
                 return false;
             }
 
@@ -138,10 +144,14 @@ bool SNTPClient::reqNTPtime()
             ret = _udp->endPacket();
             if(ret == 0)
             {
-                // failed reset to init
-                _sm_state = sntpc_sm_init;
+                // failed, reset
+                _sm_state = sntpc_sm_reset;
                 return false;
             }
+            // timestamp
+            _send_pkt_ts = millis();
+            _await_to_ts = millis()+SNTP_RESP_WAIT_TIME_MS;
+            _await_resp_ts = _send_pkt_ts;
 
             // advance
             _sm_state = sntpc_sm_await_response;
@@ -151,38 +161,71 @@ bool SNTPClient::reqNTPtime()
         case sntpc_sm_await_response:
             if(_udp->parsePacket() >= sizeof(ntp_packet_t))
             {
+                // check if the polling rate is within spec
+                _temp_ts = millis();
+
+                // check if millis has overflowed
+                if(_await_resp_ts > _temp_ts)
+                {
+                    // millis() has overflowed, restart
+                    _sm_state = sntpc_sm_reset; 
+                    return false;
+                }
+
+                // this check is to make sure that the caller is polling the reqNTPtime function within a speced maximum, too late of a call causes a massive
+                // error in synchronization
+                if(_temp_ts-_await_resp_ts > SNTP_RESP_POLL_DELTA_MS)
+                {
+                    _sm_state = sntpc_sm_reset; 
+                    return false;
+                }
+
                 // packet went through and we got a response
-                _sm_state = snptc_sm_read_response;
+                _sm_state = sntpc_sm_read_response;
+                _pkt_rx_ts = _temp_ts + (0.5*(_temp_ts-_await_resp_ts));
+                return false;
             }
-            if(_fcount > SNTPC_FCOUNT)
+ 
+            // timeout check, account for ovf
+            _temp_ts = millis();
+            if(_temp_ts < _send_pkt_ts || ((_temp_ts > _send_pkt_ts) && (_await_to_ts > _temp_ts)))
             {
                 // waited too long
-                _sm_state = sntpc_sm_init; 
+                _sm_state = sntpc_sm_reset; 
             }
-            _fcount++;
+
+            // take a time stamp of when the last call was made to parse packet. this will be used in the next call
+            _await_resp_ts = millis();
             break;
         
         // read the response in to the in buf
-        case snptc_sm_read_response:
+        case sntpc_sm_read_response:
             if(_udp->read(_data_in.raw, sizeof(ntp_packet_t)) < sizeof(ntp_packet_t))
             {
                 // reset
-                _sm_state = sntpc_sm_init;
+                _sm_state = sntpc_sm_reset;
                 return false;
             }
-            _sm_state = snptc_sm_decode; 
+            _sm_state = sntpc_sm_decode; 
             break;
 
         // decode the data
-        case snptc_sm_decode:
+        case sntpc_sm_decode:
+            _server_ts_ms = (ntohl(_data_in.ntp_pkt.tx_ts_f) / (double)0xFFFFFFFF) * 1024;
             _epoch = ntohl(_data_in.ntp_pkt.tx_ts_s) - 2208988800UL;
             // reset and return good news
-            _sm_state = sntpc_sm_init;
+            _sm_state = sntpc_sm_reset;
             return true;
+        
+        // reset
+        case sntpc_sm_reset:
+            _udp->stop();
+            _sm_state = sntpc_sm_init;
+            break;
 
         default:
             // reset sm
-            _sm_state = sntpc_sm_init;
+            _sm_state = sntpc_sm_reset;
             break;
     }
     return false;
