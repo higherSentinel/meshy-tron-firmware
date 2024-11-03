@@ -17,7 +17,7 @@ class SWModule
         virtual void run(void * params) = 0;
     
     protected:
-        uint32_t _task_wait_time = MODULE_TASK_WAIT_TIME_DEFAULT_MS;
+        uint32_t _task_wait_time_ms = MODULE_TASK_WAIT_TIME_DEFAULT_MS;
 };
 
 #endif

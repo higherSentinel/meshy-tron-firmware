@@ -21,37 +21,7 @@ bool minute_int_flag = false;
 // struct for the nixie front end display
 nixie_frontend_t fe_data;
 
-
-// isr for the minute-by-minute update
-void minuteISR()
-{
-  // minute_int_flag = true;
-}
-
-
-bool startRTC()
-{
-    // set instance and verify that the RTC is on the bus
-    if(!DS3231::getInstance().init(&Wire))
-      return false;
-    
-    // start the clock if not started
-    clock_not_synced = DS3231::getInstance().isActive();
-    if(!clock_not_synced)
-    {
-      DS3231::getInstance().startClock();
-    }
-
-    // set alarm 2 to start on each minute
-    DS3231::getInstance().setAlarm2(Alarm2EveryMinute, 0, 0, 0);
-
-    // enable alarm 2 interrupt & pin
-    attachInterrupt(RTC_INT_PIN, minuteISR, FALLING);
-    DS3231::getInstance().alarmInterruptEnable(Alarm2, true);
-}
-
-WiFiUDP udp_ins;
-
+// setup devs
 void setup()
 {
   // setup comms port & logger
@@ -117,35 +87,33 @@ void setup()
   DisplayModule::getInstance().setPulsePeriod(DISPLAY_MODULE_INTERVAL_MS);
   DisplayModule::getInstance().initModule();
 
-  // start I2C bus
+
+  // start I2C bus & RTC
   Wire.begin();
-
-  // connect to WiFi
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  MiniDisplay::getInstance().setAnimation(&animation_knight_rider_dot);
-
-  while(WiFi.status() != WL_CONNECTED)
-  {
-    // busy - wait
-    delay(100);
-  }
-
-  MiniDisplay::getInstance().setText("WIFI");
-  delay(1000);
-  MiniDisplay::getInstance().setText("CONN");
-  delay(1000);
-  MiniDisplay::getInstance().blank();
-
-  // setup ntp
-  SNTPClient::getInstance().init(&udp_ins);
-
-  // start RTC
   if(!startRTC())
   {
     Logger::verbose("SETUP: ", "RTC INIT FAIL");
     HALT;
   }
+
+  // start the time sync module
+  if(!NTPTimeSource::getInstance().init())
+  { 
+    Logger::error("SETUP", "NTP TIME SOURCE INIT FAILED");
+    HALT;
+  }
+
+  // set time offset
+  NTPTimeSource::getInstance().setTimeOffset(LOCAL_TIMEOFFSET_SECONDS);
+
+  if(TimeSynchronizer::getInstance().initModule())
+  {
+    Logger::error("SETUP", "TIME SYNCHRONIZER INIT FAILED");
+    HALT;
+  }
+
+  // set flag for first update
+  minute_int_flag = true;
 
   Logger::verbose("- SETUP COMPLETE -");
 }
@@ -166,51 +134,89 @@ uint8_t a_count = 0;
 uint16_t mcount = 1;
 uint8_t nixie_cur_digits[4];
 uint8_t nixie_digits[4];
-uint32_t n_et = 0;
+uint32_t loop_et = 0;
 bool update_digits = false;
 
+typedef struct
+{
+  uint8_t tm_sec;
+  uint8_t tm_min;
+  uint8_t tm_hour;
+  uint8_t tm_mday;
+  uint8_t tm_mon;
+  uint16_t tm_year;
+  uint8_t tm_wday;
+  uint8_t tm_yday;
+  uint8_t tm_isdst;
+}ds3231_time_t;
+
+ds3231_time_t current_time;
+
+// house keeping
 void loop()
 {
 
-  // manual trigger
-  if(millis() > (n_et + 8000))
-  {
-    minute_int_flag = true;
-    n_et = millis();
-  }
+  // loop frequency
+  if(millis() < loop_et)
+    return;
+  
+  loop_et = millis() + LOOP_WAIT_TIME_MS;
     
   // update displays
-  if(minute_int_flag)
+  // if(minute_int_flag)
+  // {
+  //   mcount = mcount<<1;
+  //   mcount = mcount == 0? 1 : mcount;
+  //   sprintf(strbuf, "%4d", mcount);
+  //   MiniDisplay::getInstance().setAnimation(animations[a_count++]);
+  //   a_count %= 7;
+  //   minute_int_flag = false;
+  // }
+
+  // isr is up, update the display
+  if(minute_int_flag && !TimeSynchronizer::getInstance().isBusy())
   {
-    mcount = mcount<<1;
-    mcount = mcount == 0? 1 : mcount;
-    sprintf(strbuf, "%4d", mcount);
-    // MiniDisplay::getInstance().setText(strbuf);
-    MiniDisplay::getInstance().setAnimation(animations[a_count++]);
-    a_count %= 7;
+    // poll time from rtc
+    DS3231::getInstance().getDateTime(&current_time.tm_hour,&current_time.tm_min,&current_time.tm_sec,&current_time.tm_mday,&current_time.tm_mon,&current_time.tm_year,&current_time.tm_wday);
+    
+    // set on nixie
+    sprintf(strbuf, "%2d%02d", current_time.tm_hour>12? current_time.tm_hour-12 : current_time.tm_hour == 0? 12 : current_time.tm_hour, current_time.tm_min);
     NixieFrontend::getInstance().setText(strbuf);
+
+    sprintf(strbuf, "  %cM", current_time.tm_hour>12? 'P':'A');
+    MiniDisplay::getInstance().setText(strbuf);
+
+    // clear flag
     minute_int_flag = false;
     DS3231::getInstance().clearAlarmFlag(Alarm2);
   }
+}
 
-  // ntp once
-  if(ntp_et != 1)
-  {
-    if(SNTPClient::getInstance().reqNTPtime())
+
+// isr for the minute-by-minute update
+void minuteISR()
+{
+  minute_int_flag = true;
+}
+
+// start the RTC
+bool startRTC()
+{
+    // set instance and verify that the RTC is on the bus
+    if(!DS3231::getInstance().init(&Wire))
+      return false;
+    
+    // start the clock if not started
+    clock_not_synced = DS3231::getInstance().isActive();
+    if(!clock_not_synced)
     {
-      ntp_et = 1;
-    } 
-    delay(10);
-  }
-  if(ntp_et == 1)
-  {
-    // synced and internally tracked with millis
-      uint32_t epoch = SNTPClient::getInstance().getEpoch();
-      sprintf(strbuf, "ephoch = %ld", epoch);
-      Logger::verbose("SNTP", strbuf);
-      delay(1000);
-  }
+      DS3231::getInstance().startClock();
+    }
 
-  // sprintf(strbuf, "UPTIME (ms, u32): %d", millis());
-  // Logger::verbose("LOOP: ", strbuf);
+    // set alarm 2 to start on each minute
+    DS3231::getInstance().setAlarm2(Alarm2EveryMinute, 0, 0, 0);
+
+    // enable alarm 2 interrupt & pin
+    attachInterrupt(RTC_INT_PIN, minuteISR, FALLING);
+    DS3231::getInstance().alarmInterruptEnable(Alarm2, true);
 }

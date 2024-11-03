@@ -4,7 +4,7 @@
 // local includes
 #include "Arduino.h"
 #include "NetworkUdp.h"
-
+#include <time.h>
 
 // local defines
 #define SNTPC_DEFAULT_SERVER        "fi.pool.ntp.org"
@@ -77,10 +77,11 @@ class SNTPClient
         static SNTPClient& getInstance();
         ~SNTPClient();
         bool reqNTPtime();
-        void init(NetworkUDP* udp_inst, const char* server_name = SNTPC_DEFAULT_SERVER, uint64_t time_offset = 0);
+        bool init(NetworkUDP* udp_inst, const char* server_name = SNTPC_DEFAULT_SERVER, uint64_t time_offset = 0);
         void setServerName(const char* name);
-        uint32_t getEpoch();
+        time_t getEpoch();
         void setServerIP(IPAddress ip);
+        void setTimeOffset(uint32_t offset);
 
 
     private:
@@ -101,6 +102,7 @@ class SNTPClient
         uint32_t        _await_resp_ts;
         uint32_t        _pkt_rx_ts;
         uint32_t        _server_ts_ms;
+        uint32_t        _time_offset;
 };
 
 #endif

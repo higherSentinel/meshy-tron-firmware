@@ -16,20 +16,24 @@ SNTPClient::~SNTPClient(){}
  * @param udp_inst instance pointing to the UDP object. caller is responsible for creating the object
  * @param time_offset time zone diff
 */
-void SNTPClient::init(NetworkUDP* udp_inst, const char* server_name, uint64_t time_offset)
+bool SNTPClient::init(NetworkUDP* udp_inst, const char* server_name, uint64_t time_offset)
 {
     // pointer patrol
     if(udp_inst == nullptr)
-        return;
+        return false;
     
     if(server_name == nullptr)
-        return;
+        return false;
 
     _udp = udp_inst;
     strncpy(_pool_name, server_name, SNTPC_SERVER_NAME_MAX_LEN);
+
+    _time_offset = time_offset;
     
     // flag up
     _initialized = true;
+
+    return true;
 }
 
 /**
@@ -58,9 +62,9 @@ void SNTPClient::setServerIP(IPAddress ip)
 
 /**
  * @brief call to get the epoch
- * @returns (uint32_t) 
+ * @returns (time_t) 
  */
-uint32_t SNTPClient::getEpoch()
+time_t SNTPClient::getEpoch()
 {
     if(!_initialized)
         return 0;
@@ -69,7 +73,16 @@ uint32_t SNTPClient::getEpoch()
     if(millis() < _pkt_rx_ts)
         return 0;
 
-    return _epoch + (_server_ts_ms + (millis()-_pkt_rx_ts)) / 1000.00;
+    return (time_t)(_epoch + _time_offset + (_server_ts_ms + (millis()-_pkt_rx_ts)) / 1000.00);
+}
+
+/**
+ * @brief call to set the time offset
+ * @param offset offset in seconds
+ */
+void  SNTPClient::setTimeOffset(uint32_t offset)
+{
+    _time_offset = offset;
 }
 
 

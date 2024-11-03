@@ -9,11 +9,10 @@
 #include "src/libs/dev/DS3231/DS3231.h"
 #include "src/libs/hw-modules/NixieFrontend/NixieFrontend.h"
 #include "src/libs/hw-modules/MiniDisplay/MiniDisplay.h"
-#include "src/libs/SNTPClient/SNTPClient.h"
-#include <Wire.h>
+#include "src/libs/sw-modules/TimeSynchronizer/TimeSources/NTPTimeSource/NTPTimeSource.h"
 #include "board-def.h"
 #include "task-info.h"
-#include <WiFi.h>
+
 #include <WiFiUdp.h>
 #include "creds.h"
 
@@ -38,3 +37,13 @@
 
 // sw-module params
 #define DISPLAY_MODULE_INTERVAL_MS       3072
+
+// loop params
+#define LOOP_FREQUENCY                   50 //Hz
+
+// time params
+#define LOCAL_TIMEOFFSET_HOURS           2
+
+// no-touchy
+#define LOOP_WAIT_TIME_MS                (1000.00/(double)LOOP_FREQUENCY)
+#define LOCAL_TIMEOFFSET_SECONDS         (LOCAL_TIMEOFFSET_HOURS*3600)
