@@ -37,6 +37,12 @@ void TimeSynchronizer::run(void * params)
                     // decrease next sync time
                     _sleep_time_ms = _sleep_time_ms - TIME_SYNCHRONIZER_TIME_TO_NEXT_SYNC_DELTA_MS < 0? TIME_SYNCHRONIZER_TIME_TO_NEXT_SYNC_MINIMUM_MS : _sleep_time_ms - TIME_SYNCHRONIZER_TIME_TO_NEXT_SYNC_DELTA_MS;
                     sprintf(_str_buf, "SYNCED TIME FROM NTP, SLEEPING FOR %d SECONDS", (uint32_t)(_sleep_time_ms/1000.00));
+
+                    // flag to update display
+                    if(_udf != nullptr)
+                    {
+                        *_udf = true;
+                    }
                 }
                 else
                 {
@@ -112,4 +118,17 @@ void TimeSynchronizer::setSecondaryTS(TimeSource* sts)
 bool TimeSynchronizer::isBusy()
 {
     return _sync_in_progress;
+}
+
+
+/**
+ * @brief call to set the update display flag pointer. this will be set to true when a sync happens indicating the house keeper to update the display
+ * @param udf pointer to update display flag
+*/
+void TimeSynchronizer::setUpdateDisplayFlag(bool* udf)
+{
+    if(udf == nullptr)
+        return;
+
+    _udf = udf;
 }

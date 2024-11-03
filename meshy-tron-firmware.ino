@@ -17,6 +17,7 @@ static char strbuf[0xFF];
 // clock sm stuff
 bool clock_not_synced = false;
 bool minute_int_flag = false;
+bool update_disp_flag = false;
 
 // struct for the nixie front end display
 nixie_frontend_t fe_data;
@@ -112,8 +113,11 @@ void setup()
     HALT;
   }
 
+  // flag used for diaply update
+  TimeSynchronizer::getInstance().setUpdateDisplayFlag(&update_disp_flag);
+
   // set flag for first update
-  minute_int_flag = true;
+  update_disp_flag = true;
 
   Logger::verbose("- SETUP COMPLETE -");
 }
@@ -174,7 +178,7 @@ void loop()
   // }
 
   // isr is up, update the display
-  if(minute_int_flag && !TimeSynchronizer::getInstance().isBusy())
+  if((minute_int_flag || update_disp_flag) && !TimeSynchronizer::getInstance().isBusy())
   {
     // poll time from rtc
     DS3231::getInstance().getDateTime(&current_time.tm_hour,&current_time.tm_min,&current_time.tm_sec,&current_time.tm_mday,&current_time.tm_mon,&current_time.tm_year,&current_time.tm_wday);
@@ -187,8 +191,15 @@ void loop()
     MiniDisplay::getInstance().setText(strbuf);
 
     // clear flag
-    minute_int_flag = false;
-    DS3231::getInstance().clearAlarmFlag(Alarm2);
+    if(minute_int_flag)
+    {
+      minute_int_flag = false;
+      DS3231::getInstance().clearAlarmFlag(Alarm2);
+    }
+    if(update_disp_flag)
+    {
+      update_disp_flag = false;
+    }
   }
 }
 

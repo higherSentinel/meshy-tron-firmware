@@ -10,7 +10,7 @@
 #include "../../TimeSynchronizer.h"
 
 // local defs
-#define NTPTS_WIFI_CONN_TIMEOUT_MS    30000 // 30s timeout
+#define NTPTS_WIFI_CONN_TIMEOUT_MS    90000 // 90s timeout
 
 class NTPTimeSource : TimeSource
 {   

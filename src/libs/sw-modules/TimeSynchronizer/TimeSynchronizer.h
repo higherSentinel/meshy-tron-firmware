@@ -28,6 +28,7 @@ class TimeSynchronizer final : SWModule
         static void startTsk(void * params);
         void setPrimaryTS(TimeSource* pts);
         void setSecondaryTS(TimeSource* sts);
+        void setUpdateDisplayFlag(bool* udf);
         bool isBusy();
     
     private:
@@ -37,6 +38,7 @@ class TimeSynchronizer final : SWModule
         char _str_buf[TIME_SYNCHRONIZER_STRBUF_SIZE];
         double _sleep_time_ms;
         bool _initialized;
+        bool * _udf;
         volatile bool _sync_in_progress = false;
 };
 
