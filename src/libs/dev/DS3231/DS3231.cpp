@@ -1,7 +1,7 @@
 #include "DS3231.h"
 
 /**
- * Singleton
+ * singleton
  */
 DS3231& DS3231::getInstance()
 {
@@ -9,22 +9,10 @@ DS3231& DS3231::getInstance()
     return instance;
 }
 
-/**
- * Constructor & Destructor
- */
-DS3231::DS3231()
-{
-
-}
-DS3231::~DS3231()
-{
-
-}
-
 
 /**
- * Call to init the RTC
- * @param i2c_instance TWI instance\
+ * call to init the RTC
+ * @param i2c_instance TWI instance
  * @warning caller is responsible to init the i2c instance
  */
 bool DS3231::init(TwoWire * i2c_instance)
@@ -32,10 +20,10 @@ bool DS3231::init(TwoWire * i2c_instance)
     if(i2c_instance == nullptr)
         return false;
 
-    // Set the i2c instance
+    // set the i2c instance
     _i2c_instance = i2c_instance;
 
-    // Check zero bits in status register
+    // check zero bits in status register
     if (readRegister(DS3231_REG_STATUS) & 0x70) {
         return false;
     }
